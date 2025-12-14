@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>불사사기 주식 리딩북 (최종 완성)</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        /* --- CSS 기본 스타일 --- */
+        body { font-family: 'Malgun Gothic', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f7f7f7; padding: 20px; }
+        .app-container { max-width: 450px; margin: 0 auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15); }
+        h1 { text-align: center; color: #4b4b4b; font-size: 1.8em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-bottom: 10px; border-bottom: 2px solid #ddd; }
+        .section-header { border-left: 5px solid #8B4513; padding-left: 10px; margin-top: 25px; margin-bottom: 15px; }
+        
+        /* 영역별 배경색 구분 */
+        .section-area { padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+        .area-1 { background-color: #fcfcfc; border: 1px solid #e9e9e9; } 
+        .area-2 { background-color: #fff; border: 1px solid #d0d0d0; } 
+        .area-3 { background-color: #fcfcfc; border: 1px solid #e9e9e9; } 
+        .sub-sector { background-color: #f0f0f0; padding: 10px 15px; border-radius: 5px; margin-top: 10px; margin-bottom: 10px; }
+        .sub-sector-alt { background-color: #f5f5f5; padding: 10px 15px; border-radius: 5px; margin-top: 10px; margin-bottom: 10px; }
+        .pivot { color: #8B4513; font-weight: normal; background-color: #fcf4e8; padding: 5px 8px; border-radius: 4px; display: inline-block; font-size: 0.9em; }
+        .pivot-desc { font-size: 0.8em; color: #5a5a5a; margin-top: 5px; line-height: 1.4; }
+
+        /* 수익/손실 색상 */
+        .profit { color: #00a86b; font-weight: bold; } 
+        .loss { color: #dc3545; font-weight: bold; }   
+        .neutral { color: #6c757d; font-weight: bold; }
+        
+        /* --- 입력 UI 개선 스타일: 원/주 단위 안쪽 정렬 --- */
+        .input-group { display: flex; align-items: center; margin-bottom: 15px; }
+        .input-group label { margin-right: 10px; width: 120px; flex-shrink: 0; }
+        .input-unit-wrapper { display: flex; flex-grow: 1; position: relative; align-items: center; } /* align-items: center 추가 */
+        .input-unit-wrapper input { padding-right: 35px; width: 100%; }
+        /* input-unit의 위치를 미세 조정하여 중앙 정렬 보정 */
+        .input-unit { 
+            position: absolute; 
+            right: 10px; 
+            font-weight: bold; 
+            color: #4b4b4b; 
+            white-space: nowrap;
+            /* Y축 미세 조정 (1px 아래로 이동하여 입력 필드 중앙에 맞춤) */
+            transform: translateY(1px); 
+        }
+
+        /* 읽기 전용 스타일 */
+        input[readonly], textarea[readonly], select[readonly] { background-color: #e9ecef; cursor: not-allowed; color: #6c757d; }
+        
+        /* 투자 정보 텍스트 강조 */
+        .status-보유 { color: #00a86b; }
+        .status-청산 { color: #dc3545; }
+        .status-매수 { color: #007bff; } 
+
+        input[type="number"], input[type="text"], input[type="date"], select, textarea { padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+        
+        /* --- 메인 버튼 시인성 강화 --- */
+        button { padding: 12px 15px; background-color: #8B4513; color: white; border: none; border-radius: 5px; cursor: pointer; transition: background-color 0.3s; font-size: 1.1em; font-weight: bold; }
+        button.main-entry { background-color: #ff5722; font-size: 1.3em; padding: 15px; } 
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
+        button.secondary { background-color: #6c757d; }
+        
+        /* --- 반짝임 애니메이션 정의 --- */
+        @keyframes pulse-border {
+            0% { box-shadow: 0 0 0 0 rgba(255, 87, 34, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(255, 87, 34, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 87, 34, 0); }
+        }
+        .pulse { animation: pulse-border 1s infinite; }
+
+        button.save-purchase { background-color: #00a86b; } 
+
+        /* 매수/청산 리스트 구분 */
+        .records-section-header { background-color: #f0f0f0; padding: 10px; margin-top: 20px; border-radius: 5px; font-weight: bold; border-left: 5px solid #007bff; }
+        .records-list-container { margin-bottom: 30px; }
+        .records-list-item { 
+            padding: 15px; 
+            border: 1px solid #ddd; 
+            margin-top: -1px; 
+            cursor: pointer; 
+            transition: background-color 0.2s;
+        }
+        .records-list-item:hover {
+            background-color: #f5f5f5;
+        }
+
+        .developer-credit { margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; text-align: center; color: #6c757d; font-size: 0.9em; }
+        .version-info { font-size: 0.75em; color: #aaa; margin-top: 5px; }
+        
+        /* 메인화면 박스 스타일 */
+        .entry-box {
+            margin: 0 auto; 
+            border: 1px solid #ddd; 
+            padding: 20px; 
+            border-radius: 8px; 
+            background-color: #f7f9fc; 
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useMemo } = React;
+
+        // ------------------- 0. 데이터 및 상수 정의 -------------------
+        
+        const ALL_STOCKS = [
+            { code: "000720", name: "현대건설" }, { code: "096770", name: "SK이노베이션" }, { code: "078930", name: "GS우" },
+            { code: "003555", name: "LG우" }, { code: "028300", name: "HLB" }, { code: "042660", name: "한화오션" },
+            { code: "003550", name: "LG" }, { code: "005490", name: "POSCO홀딩스" }, { code: "051900", name: "LG생활건강" },
+            { code: "000400", name: "HD현대" }, { code: "010950", name: "S-Oil" }, { code: "036570", name: "OCI홀딩스" },
+            { code: "298700", name: "HS효성첨단소재" }, { code: "004170", name: "신세계" }, { code: "031440", name: "신세계푸드" },
+            { code: "001300", name: "경방" }, { code: "123450", name: "에스티아이" }, { code: "032600", name: "SK디스커버리" },
+            { code: "348610", name: "오름테라퓨틱" }, { code: "002780", name: "영원무역" }, { code: "185490", name: "앱클론" },
+            { code: "009180", name: "BYC" }, { code: "002580", name: "이화산업" }, { code: "000660", name: "SK하이닉스" },
+            { code: "005930", name: "삼성전자" }, { code: "015760", name: "한국전력" }, { code: "035720", name: "카카오" },
+            { code: "079160", name: "CJ CGV" }, { code: "096610", name: "고영" }, { code: "293490", name: "카카오게임즈" },
+            { code: "323410", name: "카카오뱅크" }, { code: "247540", name: "포스코퓨처엠" }, { code: "000830", name: "삼성중공업" },
+            { code: "035420", name: "NAVER" }, { code: "000270", name: "기아" }, { code: "005380", name: "현대차" },
+            { code: "051910", name: "LG화학" }, { code: "006400", name: "삼성SDI" }, { code: "011070", name: "LG이노텍" },
+            { code: "034220", name: "LG디스플레이" }, { code: "326030", name: "SK바이오사이언스" }, { code: "000000", name: "LG씨엔에스" },
+            { code: "000810", name: "삼성물산" }, { code: "201080", name: "두산에너빌리티" }, 
+        ];
+
+        const getStockData = (symbol) => {
+             return {
+                symbol: symbol,
+                종목명: ALL_STOCKS.find(s => s.code === symbol)?.name || "선택된 종목",
+                어제_종가: 75000,
+                오늘_종가: 78000,
+                분석_자료_B1: "가격 흐름은 긍정적이나, 단기 조정 가능성이 높음. (KOA 분석 자료)",
+                TODAY_HIGH_PRICE: 78500,
+                pivot_price: 76550,
+                high_52w: 85000,
+                low_52w: 60000,
+            };
+        };
+
+        const INITIAL_USER_INPUT = {
+            나의_진입가: 0, 나의_보유_수량: 0, status: "계속 보유",
+            매수가: 0, 손절가: 0, 목표가_1차: 0, 목표가_2차: 0,
+            liquidationPriceType: "장중 고가", liquidationValue: 0, liquidationQuantityPercent: 0,
+            outlook: "", 
+        };
+        
+        const IS_AUTHOR = true; 
+
+        const DAILY_RECORDS = {
+            "005930_2025-12-10": {
+                ...INITIAL_USER_INPUT, 나의_진입가: 75000, 나의_보유_수량: 5, status: "매수",
+                매수가: 75500, 손절가: 70000, 목표가_1차: 82000, 목표가_2차: 90000, outlook: "단기 매수 추천",
+            },
+            "000660_2025-12-12": {
+                ...INITIAL_USER_INPUT, 나의_진입가: 110000, 나의_보유_수량: 10, status: "청산",
+                liquidationValue: 120000, liquidationQuantityPercent: 100, outlook: "목표가 도달. 청산 권유.",
+            },
+            "035720_2025-12-10": { 
+                ...INITIAL_USER_INPUT, 나의_진입가: 60000, 나의_보유_수량: 10, status: "매수",
+                매수가: 60000, 손절가: 55000, 목표가_1차: 70000, 목표가_2차: 80000, outlook: "신규 사업 기대감으로 매수 추천",
+            },
+        };
+        
+        const purchaseRecommendations = [
+             { id: 1, type: '매수', symbol: '005930', date: '2025-12-10', name: '삼성전자'},
+             { id: 3, type: '매수', symbol: '035720', date: '2025-12-10', name: '카카오'},
+        ];
+        
+        const liquidationRecommendations = [
+             { id: 2, type: '청산', symbol: '000660', date: '2025-12-12', name: 'SK하이닉스'},
+        ];
+
+
+        // ------------------- B.2 핵심 계산 로직 -------------------
+        const calculateMetrics = (진입가, 보유수량, 오늘종가) => {
+            const actualProfit = 보유수량 * (오늘종가 - 진입가); 
+            const profitDifference = 오늘종가 - 진입가;
+            const yieldRatio = (profitDifference / 진입가) * 100;
+            const profitClass = actualProfit > 0 ? 'profit' : actualProfit < 0 ? 'loss' : 'neutral';
+            
+            let yieldDisplay;
+            if (actualProfit === 0) { yieldDisplay = "0.00"; } 
+            else if (actualProfit < 0) { yieldDisplay = `${yieldRatio.toFixed(2)}`; } 
+            else { yieldDisplay = `+${yieldRatio.toFixed(2)}`; }
+            
+            return { actualProfit, yieldDisplay, profitClass };
+        };
+
+        // ------------------- 유틸리티 함수: 날짜에서 요일 계산 -------------------
+        const getDayOfWeek = (dateString) => {
+            if (!dateString) return "";
+            const days = ["일", "월", "화", "수", "목", "금", "토"];
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) return ""; 
+            return `(${days[date.getDay()]})`;
+        };
+
+
+        // ------------------- 매수 정보 표시/입력 컴포넌트 -------------------
+        const PurchaseInput = ({ data, handleChange, isReadOnly }) => (
+            <div style={{ border: '1px dashed #007bff', padding: '15px', marginTop: '15px', borderRadius: '5px', backgroundColor: 'white' }}>
+                <h4>🛒 매매 전략</h4>
+                
+                <div className="input-group">
+                    <label>매수가:</label>
+                    <div className="input-unit-wrapper">
+                        <input type="number" value={data.매수가} onChange={(e) => handleChange('매수가', e.target.value)} readOnly={isReadOnly} />
+                        <span className="input-unit">원</span>
+                    </div>
+                </div>
+                <div className="input-group">
+                    <label>손절가:</label>
+                    <div className="input-unit-wrapper">
+                        <input type="number" value={data.손절가} onChange={(e) => handleChange('손절가', e.target.value)} readOnly={isReadOnly} />
+                        <span className="input-unit">원</span>
+                    </div>
+                </div>
+                <div className="input-group">
+                    <label>1차 목표가:</label>
+                    <div className="input-unit-wrapper">
+                        <input type="number" value={data.목표가_1차} onChange={(e) => handleChange('목표가_1차', e.target.value)} readOnly={isReadOnly} />
+                        <span className="input-unit">원</span>
+                    </div>
+                </div>
+                <div className="input-group">
+                    <label>2차 목표가:</label>
+                    <div className="input-unit-wrapper">
+                        <input type="number" value={data.목표가_2차} onChange={(e) => handleChange('목표가_2차', e.target.value)} readOnly={isReadOnly} />
+                        <span className="input-unit">원</span>
+                    </div>
+                </div>
+                
+                {!isReadOnly && (
+                    <button onClick={() => alert('매수 전략이 저장되었습니다.')} className="save-purchase" style={{ width: '100%', marginTop: '10px' }}>
+                        매수 전략 저장
+                    </button>
+                )}
+            </div>
+        );
+
+
+        // ------------------- 모달/기록 홈 컴포넌트 (RecordsHome 수정) -------------------
+        const StockModal = ({ isOpen, onClose, onSelectStock }) => {
+            if (!isOpen) return null;
+            return (
+                <div className="modal-overlay">
+                    <div className="modal-content">
+                        <div className="modal-header">
+                            <h3>🔍 종목 직접 선택하기</h3>
+                            <button onClick={onClose} className="secondary">닫기</button>
+                        </div>
+                        <div>
+                            {ALL_STOCKS.map(stock => (
+                                <div key={stock.code} className="modal-list-item" onClick={() => { onSelectStock(stock); onClose(); }} style={{ padding: '8px 10px', borderBottom: '1px solid #eee', cursor: 'pointer' }}>
+                                    <strong>{stock.name}</strong> ({stock.code})
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+        
+        const RecordsHome = ({ onSelectRecord }) => (
+            <div style={{ marginTop: '20px' }}>
+                <div className="records-list-container">
+                    <div className="records-section-header" style={{ borderLeftColor: '#007bff' }}>🛒 매수 추천 종목</div>
+                    {purchaseRecommendations.length === 0 ? (
+                        <p style={{ padding: '15px', border: '1px solid #eee', borderTop: 'none' }}>현재 추천 매수 종목이 없습니다.</p>
+                    ) : (
+                        purchaseRecommendations.map(record => (
+                            <div 
+                                key={record.id}
+                                onClick={() => onSelectRecord(record)}
+                                className="records-list-item"
+                                style={{ backgroundColor: '#e0f2ff' }}
+                            >
+                                <strong className="status-매수">{record.name}</strong> ({record.symbol})
+                            </div>
+                        ))
+                    )}
+                </div>
+
+                <div className="records-list-container">
+                    <div className="records-section-header" style={{ borderLeftColor: '#dc3545' }}>🔴 청산 권유 종목</div>
+                    {liquidationRecommendations.length === 0 ? (
+                        <p style={{ padding: '15px', border: '1px solid #eee', borderTop: 'none' }}>현재 권유 청산 종목이 없습니다.</p>
+                    ) : (
+                        liquidationRecommendations.map(record => (
+                            <div 
+                                key={record.id}
+                                onClick={() => onSelectRecord(record)}
+                                className="records-list-item"
+                                style={{ backgroundColor: '#ffe0e0' }}
+                            >
+                                <strong className="status-청산">{record.name}</strong> ({record.symbol})
+                            </div>
+                        ))
+                    )}
+                </div>
+                
+                <p style={{ textAlign: 'center', color: '#6c757d', marginTop: '10px' }}>* 종목을 클릭하면 상세 매매 전략이 표시됩니다.</p>
+            </div>
+        );
+
+
+        // ------------------- 보고서 본문 컴포넌트 -------------------
+        const ReportContent = ({ entryData, stockData, onGoHome }) => {
+            const [data, setData] = useState(entryData);
+            
+            const { actualProfit, yieldDisplay, profitClass } = useMemo(() => 
+                calculateMetrics(data.나의_진입가, data.나의_보유_수량, stockData.오늘_종가), 
+                [data.나의_진입가, data.나의_보유_수량, stockData.오늘_종가]
+            );
+
+            const handleChange = (field, value) => {
+                const isNumeric = ['나의_진입가', '나의_보유_수량', 'liquidationValue', 'liquidationQuantityPercent', '매수가', '손절가', '목표가_1차', '목표가_2차'].includes(field);
+                
+                const isPublicField = field === '나의_진입가' || field === '나의_보유_수량';
+
+                if (isPublicField || IS_AUTHOR) {
+                    setData(prev => ({ ...prev, [field]: isNumeric ? Number(value) : value }));
+                } else {
+                    alert("이 정보는 주인님만 수정할 수 있습니다.");
+                }
+            };
+
+            const handleStatusChange = (newStatus) => {
+                if (IS_AUTHOR) {
+                    setData(prev => ({ 
+                        ...prev, 
+                        status: newStatus,
+                        liquidationValue: newStatus === "청산" ? stockData.TODAY_HIGH_PRICE : prev.liquidationValue
+                    }));
+                } else {
+                     alert("이 정보는 주인님만 변경할 수 있습니다.");
+                }
+            };
+
+            const handlePriceTypeChange = (type) => {
+                 if (IS_AUTHOR) {
+                    setData(prev => ({
+                        ...prev,
+                        liquidationPriceType: type,
+                        liquidationValue: type === "장중 고가" ? stockData.TODAY_HIGH_PRICE : 0
+                    }));
+                }
+            };
+            
+            const handleSubmitLiquidation = () => {
+                if (data.status !== "청산") return;
+                alert(`✅ 청산 기록을 서버에 전송하고, 이전 화면으로 돌아갑니다.`);
+                onGoHome();
+            };
+
+            const statusClass = (status) => 
+                status === "계속 보유" ? 'status-보유' : 
+                status === "청산" ? 'status-청산' : 'status-매수';
+
+
+            return (
+                <div>
+                    <button onClick={onGoHome} className="secondary" style={{ marginBottom: '15px' }}>
+                        ← 이전 화면으로 돌아가기
+                    </button>
+
+                    {/* 1. 기본 정보 (B.1) */}
+                    <div className="section-area area-1">
+                        <div className="section-header"><h2>1. 기본 정보</h2></div>
+                        
+                        <div className="sub-sector">
+                            <p>📈 **어제 종가:** {stockData.어제_종가.toLocaleString()}원</p>
+                            <p>📊 **오늘 종가:** {stockData.오늘_종가.toLocaleString()}원</p>
+                        </div>
+
+                        <div className="sub-sector-alt">
+                            <p>🔽 **52주 신저가:** {stockData.low_52w.toLocaleString()}원</p>
+                            <p>🔼 **52주 신고가:** {stockData.high_52w.toLocaleString()}원</p>
+                            
+                            <div style={{ marginTop: '15px' }}>
+                                {/* 금액만 굵게 표시 */}
+                                <p><strong className="pivot">금주의 Pivot 기준가격: <span style={{ fontWeight: '900' }}>{stockData.pivot_price.toLocaleString()}원</span></strong></p>
+                                <p className="pivot-desc">Pivot 기준가격은 이보다 주가가 높으면 지지선이 되고 낮으면 저항선이 됩니다.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 2. 나의 투자 실적 (B.2) */}
+                    <div className="section-area area-2">
+                        <div className="section-header"><h2>2. 나의 투자 실적</h2></div>
+                        
+                        <div className="input-group">
+                            <label>나의 진입가:</label>
+                            <div className="input-unit-wrapper">
+                                <input type="number" value={data.나의_진입가} onChange={(e) => handleChange('나의_진입가', e.target.value)} inputMode="numeric" />
+                                <span className="input-unit">원</span>
+                            </div>
+                        </div>
+                        <div className="input-group">
+                            <label>나의 보유 수량:</label>
+                            <div className="input-unit-wrapper">
+                                <input type="number" value={data.나의_보유_수량} onChange={(e) => handleChange('나의_보유_수량', e.target.value)} inputMode="numeric"/>
+                                <span className="input-unit">주</span>
+                            </div>
+                        </div>
+                        
+                        <h4 style={{ marginTop: '20px' }}>📊 계산 결과</h4>
+                        <p>오늘 종가 대비 수익률: <span className={profitClass}>{yieldDisplay}%</span></p>
+                        <p>실제 수익금액: <span className={profitClass}>{actualProfit.toLocaleString()}원</span></p>
+                    </div>
+
+                    {/* 3. 투자 정보 (B.3) */}
+                    <div className="section-area area-3">
+                        <div className="section-header"><h2>3. 투자 정보</h2></div>
+                        
+                        <label>보유/청산 선택:
+                            <select 
+                                value={data.status} 
+                                onChange={(e) => handleStatusChange(e.target.value)}
+                                readOnly={!IS_AUTHOR}
+                            >
+                                <option value="매수" className="status-매수 status-option">매수</option>
+                                <option value="계속 보유" className="status-보유 status-option">계속 보유</option>
+                                <option value="청산" className="status-청산 status-option">청산</option>
+                            </select>
+                        </label>
+                        
+                        {/* 매수 항목 활성화 */}
+                        {data.status === "매수" && (
+                            <PurchaseInput data={data} handleChange={handleChange} isReadOnly={!IS_AUTHOR} />
+                        )}
+
+                        {/* 청산 항목 활성화 */}
+                        {data.status === "청산" && (
+                            <div style={{ border: '1px dashed #dc3545', padding: '15px', marginTop: '15px', borderRadius: '5px', backgroundColor: 'white' }}>
+                                <h4>청산 상세 입력</h4>
+                                
+                                <label>청산가:</label>
+                                <div className="input-unit-wrapper">
+                                    <select 
+                                        value={data.liquidationPriceType} 
+                                        onChange={(e) => handlePriceTypeChange(e.target.value)}
+                                        readOnly={!IS_AUTHOR}
+                                    >
+                                        <option value="장중 고가">장중 고가 ({stockData.TODAY_HIGH_PRICE.toLocaleString()}원)</option>
+                                        <option value="직접 수치 입력">직접 수치 입력</option>
+                                    </select>
+                                </div>
+                                
+                                {data.liquidationPriceType === "직접 수치 입력" && (
+                                    <input type="number" value={data.liquidationValue} onChange={(e) => handleChange('liquidationValue', e.target.value)} placeholder="청산 수치 입력" readOnly={!IS_AUTHOR} />
+                                )}
+                                
+                                <label style={{ marginTop: '10px' }}>청산 수량: 
+                                    <input 
+                                        type="range" 
+                                        min="0" 
+                                        max="100" 
+                                        value={data.liquidationQuantityPercent} 
+                                        onChange={(e) => handleChange('liquidationQuantityPercent', e.target.value)} 
+                                        readOnly={!IS_AUTHOR}
+                                    />
+                                    <span>{data.liquidationQuantityPercent}%</span>
+                                </label>
+
+                                {!IS_AUTHOR ? (
+                                    <p style={{ color: '#dc3545', textAlign: 'center', marginTop: '10px', fontWeight: 'bold' }}>* 청산 기록은 주인님만 제출 가능합니다.</p>
+                                ) : (
+                                    <button onClick={handleSubmitLiquidation} style={{ width: '100%', marginTop: '15px', backgroundColor: '#dc3545' }}>청산 기록 제출</button>
+                                )}
+                            </div>
+                        )}
+                        
+                        {/* 전망 */}
+                        <label style={{ marginTop: '20px' }}>전망 (글로 작성):
+                            <textarea rows="4" value={data.outlook} onChange={(e) => handleChange('outlook', e.target.value)} placeholder={stockData.분석_자료_B1} readOnly={!IS_AUTHOR}></textarea>
+                        </label>
+                    </div>
+                </div>
+            );
+        };
+        
+
+        // ------------------- 메인 애플리케이션 (Entry Gate 구현) -------------------
+        const StockReportApp = () => {
+            const [entryStatus, setEntryStatus] = useState({ symbol: '', date: '', search: '' });
+            const [viewMode, setViewMode] = useState('entry'); 
+            const [selectedStockData, setSelectedStockData] = useState(null);
+            const [currentReportData, setCurrentReportData] = useState(null);
+            const [isModalOpen, setIsModalOpen] = useState(false); 
+
+            const isReadyToEnter = entryStatus.symbol && entryStatus.date;
+
+            // 검색 결과를 필터링하는 로직
+            const filteredStocks = entryStatus.search
+                ? ALL_STOCKS.filter(stock => 
+                    stock.name.toLowerCase().includes(entryStatus.search.toLowerCase()) || 
+                    stock.code.includes(entryStatus.search)
+                )
+                : []; 
+
+            const handleSelectStock = (stock) => {
+                setEntryStatus(p => ({ 
+                    ...p, 
+                    search: `${stock.name} (${stock.code})`, 
+                    symbol: stock.code 
+                }));
+            };
+
+            const handleEntry = () => {
+                if (entryStatus.symbol && entryStatus.date) {
+                    const data = getStockData(entryStatus.symbol);
+                    setSelectedStockData(data);
+                    
+                    const recordKey = `${entryStatus.symbol}_${entryStatus.date}`;
+                    const dailyData = DAILY_RECORDS[recordKey] || INITIAL_USER_INPUT;
+                    setCurrentReportData(dailyData);
+
+                    setViewMode('report');
+                } else {
+                    alert('종목명과 날짜를 모두 선택해야 진입할 수 있습니다.');
+                }
+            };
+            
+            const handleSelectRecord = (record) => {
+                 const data = getStockData(record.symbol);
+                 setSelectedStockData(data);
+                 
+                 const recordKey = `${record.symbol}_${record.date}`;
+                 const dailyData = DAILY_RECORDS[recordKey] || INITIAL_USER_INPUT;
+                 setCurrentReportData(dailyData);
+
+                 setEntryStatus(p => ({ 
+                    ...p, 
+                    symbol: record.symbol, 
+                    date: record.date, 
+                    search: `${record.name} (${record.symbol})` 
+                 }));
+
+                 setViewMode('report');
+            };
+
+            const getCurrentDate = () => {
+                const now = new Date();
+                const year = now.getFullYear();
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const day = String(now.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            };
+
+
+            const renderContent = () => {
+                const isReportOrRecords = viewMode === 'report';
+
+                return (
+                    <div className="app-container">
+                        <h1 style={{ textAlign: 'center' }}>불사사기 주식 리딩북</h1>
+                        
+                        {/* 리포트 화면 헤더 */}
+                        {isReportOrRecords && selectedStockData && (
+                             <>
+                                <p style={{ textAlign: 'center', color: '#8B4513', fontWeight: 'bold', fontSize: '1.1em', marginTop: '10px', lineHeight: '1.5em' }}>
+                                    종목: {selectedStockData.종목명} ({selectedStockData.symbol})
+                                    <br/>
+                                    날짜: {entryStatus.date} {getDayOfWeek(entryStatus.date)}
+                                </p>
+                            </>
+                        )}
+                        
+                        {/* 종목 선택/진입 및 추천 리스트 화면 */}
+                        {viewMode === 'entry' && (
+                            <>
+                                <div className="entry-box">
+                                    <label>종목 검색 (글자 일부 입력):
+                                        <div className="input-wrapper">
+                                            <input type="text" placeholder="종목명 또는 코드 입력 (예: 삼성, 0059)" value={entryStatus.search} onChange={(e) => setEntryStatus(p => ({ ...p, search: e.target.value, symbol: '' }))}/>
+                                            {filteredStocks.length > 0 && entryStatus.search && (
+                                                <div className="search-results">
+                                                    {filteredStocks.map(stock => (
+                                                        <div key={stock.code} onClick={() => handleSelectStock(stock)} className="search-item">{stock.name} ({stock.code})</div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </label>
+                                    
+                                    <button onClick={() => setIsModalOpen(true)} className="secondary" style={{ width: '100%', marginTop: '10px', backgroundColor: '#6c757d' }}>📜 종목 직접 선택하기</button>
+                                    
+                                    {entryStatus.symbol && (<p style={{ marginTop: '15px', fontWeight: 'bold', color: '#8B4513' }}>선택된 종목: {entryStatus.search}</p>)}
+
+                                    {/* --- 날짜 Input 필드: 레이블만 표시 --- */}
+                                    <label style={{ marginTop: '15px' }}>날짜 및 요일 선택:</label> 
+                                    <input 
+                                        type="date" 
+                                        value={entryStatus.date} 
+                                        onChange={(e) => setEntryStatus(p => ({ ...p, date: e.target.value }))} 
+                                        max={getCurrentDate()}
+                                        style={{ width: '100%', paddingRight: '10px' }}
+                                    />
+                                    {entryStatus.date && <span style={{ marginLeft: '10px', fontWeight: 'bold', color: '#8B4513' }}>{getDayOfWeek(entryStatus.date)}</span>}
+                                    
+                                    <p style={{ fontSize: '0.9em', color: '#5a5a5a', marginTop: '5px' }}>종목과 날짜를 선택하시면 해당 종목정보를 확인할 수 있습니다.</p>
+
+                                    {/* --- 반짝임 적용 --- */}
+                                    <button 
+                                        onClick={handleEntry} 
+                                        disabled={!isReadyToEnter} 
+                                        className={`main-entry ${isReadyToEnter ? 'pulse' : ''}`} 
+                                        style={{ width: '100%', marginTop: '20px' }}
+                                    >
+                                        ✨ 리딩북 진입하기
+                                    </button>
+                                </div>
+                                
+                                {/* 매매 추천 종목 리스트 (메인 화면 하단에 바로 표시) */}
+                                <RecordsHome onSelectRecord={handleSelectRecord} />
+                            </>
+                        )}
+                        
+                        {/* 리포트 화면 */}
+                        {viewMode === 'report' && selectedStockData && currentReportData && (
+                            <ReportContent 
+                                entryData={currentReportData} 
+                                stockData={selectedStockData} 
+                                onGoHome={() => setViewMode('entry')} /* 이전 화면은 entry view */
+                            />
+                        )}
+                        
+                        <StockModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSelectStock={handleSelectStock} />
+
+                         <div className="developer-credit">
+                            <p><strong>🚨 Disclaimer:</strong> 투자 결정 및 실행 결과는 투자자 본인이 책임집니다.</p>
+                            <p>🔥 이 불사사기 리딩북은 **주인님**과 **제미나이**의 합작품입니다. 🔥</p>
+                            <p className="version-info">Ver 1.0</p>
+                        </div>
+                    </div>
+                );
+            };
+
+
+            return renderContent();
+        };
+
+        ReactDOM.render(<StockReportApp />, document.getElementById('root'));
+    </script>
+</body>
+</html>
