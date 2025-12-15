@@ -1,7 +1,7 @@
 // script.js 파일 내용 (최종 완성본 - 로컬 테스트용 localhost API 주소)
 
 // 주인님의 로컬 PC IP 주소로 설정 (Flask 서버가 이 주소로 데이터를 제공합니다.)
-const API_URL = "http://192.168.219.41:5000/api/data"; 
+const API_URL = "http://localhost:5000/api/data"; 
 const REFRESH_INTERVAL = 5000; // 5초마다 데이터 업데이트
 
 function updateStatus(status, message) {
@@ -77,4 +77,5 @@ fetchData();
 // 주기적인 데이터 업데이트 설정
 
 setInterval(fetchData, REFRESH_INTERVAL);
+
 
