@@ -3,7 +3,7 @@
 내용
 
 const
-API_URL = 'http://127.0.0.1:5000/api/data';
+API_URL = "http://192.168.219.41:5000/api/data";
 const
 TABLE_BODY = document.getElementById('data-table-body');
 const
@@ -146,4 +146,5 @@ setInterval(fetchStockData, 5000);
 번
 데이터
 로드
+
 fetchStockData();
