@@ -1,7 +1,7 @@
 // script.js 파일 내용 (최종 완성본 - 로컬 테스트용 localhost API 주소)
 
 // Flask 서버가 5000 포트에서 실행 중임을 가정하고, 로컬 테스트를 위해 localhost를 사용합니다.
-const API_URL = "http://localhost:5000/api/data";
+const API_URL = "http://192.168.219.41:5000/api/data";
 const REFRESH_INTERVAL = 5000; // 5초마다 데이터 업데이트
 
 function updateStatus(status, message) {
@@ -75,4 +75,5 @@ function renderTable(data) {
 fetchData();
 
 // 주기적인 데이터 업데이트 설정
+
 setInterval(fetchData, REFRESH_INTERVAL);
